@@ -2,58 +2,85 @@
 
 set -e
 
-# Script metadata
-SCRIPT_VERSION="1.0.0"
-SCRIPT_NAME="FFmpeg Audio Codecs Compilation"
-AUTHOR="Mika Säppi - Collins Group"
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Determine number of CPU cores for parallel compilation
-CORES=$(nproc)
-print_status "=== $SCRIPT_NAME v$SCRIPT_VERSION ==="
-print_status "Author: $AUTHOR"
-print_status "This script will compile FFmpeg with essential audio codecs"
-print_status "Detected $CORES CPU cores - using make -j$CORES for faster compilation"
-print_status "Estimated time: 15-30 minutes depending on your system"
+echo "=== FFmpeg Audio Codecs Compilation Script ==="
+echo "This script will compile FFmpeg with essential audio codecs"
 echo ""
 
-# Check available disk space
-AVAILABLE_SPACE=$(df ~ | awk 'NR==2 {print $4}')
-REQUIRED_SPACE=2000000  # 2GB in KB
-if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
-    print_error "Insufficient disk space. Required: ~2GB, Available: $(($AVAILABLE_SPACE/1024/1024))GB"
+# Early version selection - clone FFmpeg repo first to get available versions
+echo "Preparing FFmpeg repository for version selection..."
+cd ~/
+mkdir -p ~/ffmpeg_sources
+cd ~/ffmpeg_sources
+git -C ffmpeg pull 2> /dev/null || git clone https://git.ffmpeg.org/ffmpeg.git
+cd ffmpeg
+git fetch --tags > /dev/null 2>&1
+
+# Get list of stable versions
+STABLE_VERSIONS=$(git tag | grep "^n[0-9]" | grep -v -E "(dev|rc|alpha|beta)" | sort -V)
+LATEST_STABLE=$(echo "$STABLE_VERSIONS" | tail -1)
+
+echo "=== FFmpeg Version Selection ==="
+echo "Latest stable version: $LATEST_STABLE"
+echo ""
+echo "Available major versions:"
+for major in $(echo "$STABLE_VERSIONS" | sed 's/^n\([0-9]\+\)\..*$/\1/' | sort -n | uniq | tail -5); do
+    latest_in_major=$(echo "$STABLE_VERSIONS" | grep "^n${major}\." | tail -1)
+    echo "  $major -> $latest_in_major"
+done
+echo ""
+echo "Enter version to install:"
+echo "  - Full version (e.g., n7.0.2, n6.1.1)"
+echo "  - Major version number (e.g., 7 for latest n7.x.y)"
+echo "  - Press Enter for latest stable ($LATEST_STABLE)"
+echo ""
+read -p "Version: " VERSION_INPUT
+
+if [ -z "$VERSION_INPUT" ]; then
+    SELECTED_VERSION="$LATEST_STABLE"
+    echo "Using latest stable version: $SELECTED_VERSION"
+elif [[ "$VERSION_INPUT" =~ ^[0-9]+$ ]]; then
+    # Single number - find latest version for that major
+    MAJOR_VERSION="$VERSION_INPUT"
+    SELECTED_VERSION=$(echo "$STABLE_VERSIONS" | grep "^n${MAJOR_VERSION}\." | tail -1)
+    if [ -z "$SELECTED_VERSION" ]; then
+        echo "Error: No stable versions found for major version $MAJOR_VERSION"
+        echo "Available major versions: $(echo "$STABLE_VERSIONS" | sed 's/^n\([0-9]\+\)\..*$/\1/' | sort -n | uniq | tr '\n' ' ')"
+        exit 1
+    fi
+    echo "Using latest version for major $MAJOR_VERSION: $SELECTED_VERSION"
+elif echo "$STABLE_VERSIONS" | grep -q "^${VERSION_INPUT}$"; then
+    SELECTED_VERSION="$VERSION_INPUT"
+    echo "Using specified version: $SELECTED_VERSION"
+else
+    echo "Error: Version '$VERSION_INPUT' not found in stable releases."
+    echo "Available versions that contain '$VERSION_INPUT':"
+    MATCHING_VERSIONS=$(echo "$STABLE_VERSIONS" | grep "$VERSION_INPUT" | head -10)
+    if [ -n "$MATCHING_VERSIONS" ]; then
+        echo "$MATCHING_VERSIONS"
+    else
+        echo "No matches found."
+    fi
+    echo ""
+    echo "Use format like: n7.0.2, n6.1.1, or just: 7, 6"
     exit 1
 fi
 
+echo "Selected FFmpeg version: $SELECTED_VERSION"
+echo ""
+
+# Determine number of CPU cores for parallel compilation
+CORES=$(nproc)
+echo "Detected $CORES CPU cores - using make -j$CORES for faster compilation"
+echo "Estimated time: 15-30 minutes depending on your system"
+echo ""
+
 # Setup directories
-print_status "Setting up directories..."
+echo "Setting up directories..."
 cd ~/ &&
 mkdir -p ~/ffmpeg_sources ~/bin &&
 
 # Install dependencies
-print_status "Installing dependencies..."
+echo "Installing dependencies..."
 sudo apt-get update -qq && sudo apt-get -y install \
   autoconf \
   automake \
@@ -86,26 +113,26 @@ sudo apt-get update -qq && sudo apt-get -y install \
   libssl-dev \
   libcrypto++-dev
 
-print_success "Dependencies installed successfully!"
+echo "Dependencies installed successfully!"
 
 # Try to install SRT from package manager first
-print_status "Attempting to install SRT from package manager..."
+echo "Attempting to install SRT from package manager..."
 if sudo apt-get -y install libsrt-openssl-dev 2>/dev/null || sudo apt-get -y install libsrt-gnutls-dev 2>/dev/null; then
-    print_success "SRT installed from package manager!"
+    echo "SRT installed from package manager!"
     SKIP_SRT_BUILD=true
 else
-    print_warning "SRT not available from package manager, will build from source"
+    echo "SRT not available from package manager, will build from source"
     SKIP_SRT_BUILD=false
 fi
 
 # NASM
-print_status "Building NASM..."
+echo "Building NASM..."
 cd ~/ffmpeg_sources
 NASM_VERSION="2.16.03"
 NASM_SHA256="bef3de159bcd61adf98bb7cc87ee9046e944644ad76b7633f18ab063edb29e57"
 wget "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/nasm-${NASM_VERSION}.tar.bz2"
 echo "${NASM_SHA256}  nasm-${NASM_VERSION}.tar.bz2" | sha256sum -c || {
-    print_error "NASM checksum verification failed!"
+    echo "NASM checksum verification failed!"
     exit 1
 }
 tar xjvf nasm-2.16.03.tar.bz2 && \
@@ -116,10 +143,10 @@ make -j$CORES && \
 sudo make install
 sudo ldconfig
 
-print_success "NASM installed successfully!"
+echo "NASM installed successfully!"
 
 # libfdk-aac
-print_status "Building libfdk-aac..."
+echo "Building libfdk-aac..."
 cd ~/ffmpeg_sources && \
 git -C fdk-aac pull 2> /dev/null || git clone --depth 1 https://github.com/mstorsjo/fdk-aac && \
 cd fdk-aac && \
@@ -129,10 +156,10 @@ make -j$CORES && \
 sudo make install
 sudo ldconfig
 
-print_success "libfdk-aac installed successfully!"
+echo "libfdk-aac installed successfully!"
 
 # libopus
-print_status "Building libopus..."
+echo "Building libopus..."
 cd ~/ffmpeg_sources && \
 git -C opus pull 2> /dev/null || git clone --depth 1 https://github.com/xiph/opus.git && \
 cd opus && \
@@ -142,11 +169,11 @@ make -j$CORES && \
 sudo make install
 sudo ldconfig
 
-print_success "libopus installed successfully!"
+echo "libopus installed successfully!"
 
 # SRT (only build if not available from package manager)
 if [ "$SKIP_SRT_BUILD" = false ]; then
-    print_status "Building SRT from source..."
+    echo "Building SRT from source..."
     cd ~/ffmpeg_sources && \
     git -C srt pull 2> /dev/null || git clone --depth 1 https://github.com/Haivision/srt.git && \
     cd srt && \
@@ -155,22 +182,17 @@ if [ "$SKIP_SRT_BUILD" = false ]; then
     make -j$CORES && \
     sudo make install && \
     sudo ldconfig
-    print_success "SRT built and installed successfully!"
+    echo "SRT built and installed successfully!"
 else
-    print_status "Using SRT from package manager"
+    echo "Using SRT from package manager"
 fi
 
 # FFmpeg compilation
-print_status "Building FFmpeg with audio codecs..."
-cd ~/ffmpeg_sources 
-git -C ffmpeg pull 2> /dev/null || git clone https://git.ffmpeg.org/ffmpeg.git 
-cd ffmpeg 
+echo "Building FFmpeg with audio codecs..."
+cd ~/ffmpeg_sources/ffmpeg
 
-# Get latest stable version (7.x series)
-print_status "Checking out latest stable version..."
-LATEST_STABLE=$(git tag | grep "^n[0-9]" | grep -v -E "(dev|rc|alpha|beta)" | sort -V | tail -1)
-print_status "Using FFmpeg stable version: $LATEST_STABLE"
-git checkout "$LATEST_STABLE"
+echo "Checking out FFmpeg version: $SELECTED_VERSION"
+git checkout "$SELECTED_VERSION"
 
 cd ~/ffmpeg_sources/ffmpeg && \
 ./configure \
@@ -198,21 +220,21 @@ sudo ldconfig
 export PATH="/usr/local/bin:$PATH"
 
 # Make PATH change permanent
-print_status "Making PATH changes permanent..."
+echo "Making PATH changes permanent..."
 if ! grep -q 'export PATH="/usr/local/bin:$PATH"' ~/.bashrc; then
     echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
-    print_success "Added /usr/local/bin to PATH in ~/.bashrc"
+    echo "Added /usr/local/bin to PATH in ~/.bashrc"
 fi
 
 # Create convenience script for system FFmpeg if needed
 if [ -f "/usr/bin/ffmpeg.backup" ]; then
-    print_status "Creating 'ffmpeg-system' command for accessing original FFmpeg..."
+    echo "Creating 'ffmpeg-system' command for accessing original FFmpeg..."
     sudo ln -sf /usr/bin/ffmpeg.backup /usr/local/bin/ffmpeg-system
 fi
 
 echo ""
-print_success "=== Compilation Complete! ==="
-print_success "FFmpeg has been successfully compiled with the following audio codecs:"
+echo "=== Compilation Complete! ==="
+echo "FFmpeg version $SELECTED_VERSION has been successfully compiled with the following audio codecs:"
 echo "  ✓ libfdk-aac (High-quality AAC)"
 echo "  ✓ libmp3lame (MP3)"
 echo "  ✓ libopus (Modern codec for streaming)"
@@ -226,15 +248,15 @@ else
     echo "  ⚠ libsrt (Not available on this system)"
 fi
 echo ""
-print_status "Compilation used $CORES CPU cores for faster build times."
-print_status "You can verify the installation by running:"
+echo "Compilation used $CORES CPU cores for faster build times."
+echo "You can verify the installation by running:"
 echo "  ffmpeg -version"
 echo "  ffmpeg -codecs | grep -E '(fdk_aac|mp3lame|opus|vorbis|speex|twolame|amr)'"
 echo ""
-print_status "FFmpeg binary location: /usr/local/bin/ffmpeg"
+echo "FFmpeg binary location: /usr/local/bin/ffmpeg"
 echo ""
-print_warning "Note: Using all CPU cores during compilation may have made your system"
-print_warning "temporarily slow or unresponsive. This is normal and should now be resolved."
+echo "Note: Using all CPU cores during compilation may have made your system"
+echo "temporarily slow or unresponsive. This is normal and should now be resolved."
 echo ""
-print_status "=== FFmpeg Version Information ==="
+echo "=== FFmpeg Version Information ==="
 ffmpeg -version
