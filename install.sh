@@ -2,10 +2,74 @@
 
 set -e
 
-# Determine number of CPU cores for parallel compilation
-CORES=$(nproc)
 echo "=== FFmpeg Audio Codecs Compilation Script ==="
 echo "This script will compile FFmpeg with essential audio codecs"
+echo ""
+
+# Early version selection - clone FFmpeg repo first to get available versions
+echo "Preparing FFmpeg repository for version selection..."
+cd ~/
+mkdir -p ~/ffmpeg_sources
+cd ~/ffmpeg_sources
+git -C ffmpeg pull 2> /dev/null || git clone https://git.ffmpeg.org/ffmpeg.git
+cd ffmpeg
+git fetch --tags > /dev/null 2>&1
+
+# Get list of stable versions
+STABLE_VERSIONS=$(git tag | grep "^n[0-9]" | grep -v -E "(dev|rc|alpha|beta)" | sort -V)
+LATEST_STABLE=$(echo "$STABLE_VERSIONS" | tail -1)
+
+echo "=== FFmpeg Version Selection ==="
+echo "Latest stable version: $LATEST_STABLE"
+echo ""
+echo "Available major versions:"
+for major in $(echo "$STABLE_VERSIONS" | sed 's/^n\([0-9]\+\)\..*$/\1/' | sort -n | uniq | tail -5); do
+    latest_in_major=$(echo "$STABLE_VERSIONS" | grep "^n${major}\." | tail -1)
+    echo "  $major -> $latest_in_major"
+done
+echo ""
+echo "Enter version to install:"
+echo "  - Full version (e.g., n7.0.2, n6.1.1)"
+echo "  - Major version number (e.g., 7 for latest n7.x.y)"
+echo "  - Press Enter for latest stable ($LATEST_STABLE)"
+echo ""
+read -p "Version: " VERSION_INPUT
+
+if [ -z "$VERSION_INPUT" ]; then
+    SELECTED_VERSION="$LATEST_STABLE"
+    echo "Using latest stable version: $SELECTED_VERSION"
+elif [[ "$VERSION_INPUT" =~ ^[0-9]+$ ]]; then
+    # Single number - find latest version for that major
+    MAJOR_VERSION="$VERSION_INPUT"
+    SELECTED_VERSION=$(echo "$STABLE_VERSIONS" | grep "^n${MAJOR_VERSION}\." | tail -1)
+    if [ -z "$SELECTED_VERSION" ]; then
+        echo "Error: No stable versions found for major version $MAJOR_VERSION"
+        echo "Available major versions: $(echo "$STABLE_VERSIONS" | sed 's/^n\([0-9]\+\)\..*$/\1/' | sort -n | uniq | tr '\n' ' ')"
+        exit 1
+    fi
+    echo "Using latest version for major $MAJOR_VERSION: $SELECTED_VERSION"
+elif echo "$STABLE_VERSIONS" | grep -q "^${VERSION_INPUT}$"; then
+    SELECTED_VERSION="$VERSION_INPUT"
+    echo "Using specified version: $SELECTED_VERSION"
+else
+    echo "Error: Version '$VERSION_INPUT' not found in stable releases."
+    echo "Available versions that contain '$VERSION_INPUT':"
+    MATCHING_VERSIONS=$(echo "$STABLE_VERSIONS" | grep "$VERSION_INPUT" | head -10)
+    if [ -n "$MATCHING_VERSIONS" ]; then
+        echo "$MATCHING_VERSIONS"
+    else
+        echo "No matches found."
+    fi
+    echo ""
+    echo "Use format like: n7.0.2, n6.1.1, or just: 7, 6"
+    exit 1
+fi
+
+echo "Selected FFmpeg version: $SELECTED_VERSION"
+echo ""
+
+# Determine number of CPU cores for parallel compilation
+CORES=$(nproc)
 echo "Detected $CORES CPU cores - using make -j$CORES for faster compilation"
 echo "Estimated time: 15-30 minutes depending on your system"
 echo ""
@@ -125,53 +189,7 @@ fi
 
 # FFmpeg compilation
 echo "Building FFmpeg with audio codecs..."
-cd ~/ffmpeg_sources 
-git -C ffmpeg pull 2> /dev/null || git clone https://git.ffmpeg.org/ffmpeg.git 
-cd ffmpeg 
-
-# Version selection
-echo ""
-echo "=== FFmpeg Version Selection ==="
-echo "Fetching available versions..."
-git fetch --tags > /dev/null 2>&1
-
-# Get list of stable versions
-STABLE_VERSIONS=$(git tag | grep "^n[0-9]" | grep -v -E "(dev|rc|alpha|beta)" | sort -V)
-LATEST_STABLE=$(echo "$STABLE_VERSIONS" | tail -1)
-
-echo "Latest stable version: $LATEST_STABLE"
-echo ""
-echo "Available recent stable versions:"
-echo "$STABLE_VERSIONS" | tail -10
-echo ""
-echo "Enter version to install (e.g., n7.0.2, n6.1.1)"
-echo "Or press Enter for latest stable ($LATEST_STABLE):"
-read -r VERSION_INPUT
-
-if [ -z "$VERSION_INPUT" ]; then
-    SELECTED_VERSION="$LATEST_STABLE"
-    echo "Using latest stable version: $SELECTED_VERSION"
-else
-    # Validate the input version exists
-    if echo "$STABLE_VERSIONS" | grep -q "^${VERSION_INPUT}$"; then
-        SELECTED_VERSION="$VERSION_INPUT"
-        echo "Using specified version: $SELECTED_VERSION"
-    else
-        echo "Warning: Version '$VERSION_INPUT' not found in stable releases."
-        echo "Available versions that match your input:"
-        echo "$STABLE_VERSIONS" | grep "$VERSION_INPUT" || echo "No matches found."
-        echo ""
-        echo "Continue with latest stable ($LATEST_STABLE)? (y/N):"
-        read -r CONTINUE_CHOICE
-        if [[ "$CONTINUE_CHOICE" =~ ^[Yy]$ ]]; then
-            SELECTED_VERSION="$LATEST_STABLE"
-            echo "Using latest stable version: $SELECTED_VERSION"
-        else
-            echo "Installation cancelled."
-            exit 1
-        fi
-    fi
-fi
+cd ~/ffmpeg_sources/ffmpeg
 
 echo "Checking out FFmpeg version: $SELECTED_VERSION"
 git checkout "$SELECTED_VERSION"
