@@ -39,8 +39,34 @@ compiling from source inherently carries more risk than using package managers.
 bash install.sh
 ```
 
-**Time:** 15-30 minutes depending on system
+**Time:** 5-30 minutes depending on system
 **Space:** ~2GB in `~/ffmpeg_sources`
+
+### Version prompt
+The script now prompts you for what version would you like to install. If unsure, press Enter (leaving the field empty) and you'll get the latest stable version.
+
+Example:
+
+```
+=== FFmpeg Version Selection ===
+Latest stable version: n8.0
+
+Available major versions:
+  4 -> n4.4.5
+  5 -> n5.1.7
+  6 -> n6.1.3
+  7 -> n7.1.2
+  8 -> n8.0
+
+Enter version to install:
+  - Full version (e.g., n7.0.2, n6.1.1)
+  - Major version number (e.g., 7 for latest n7.x.y)
+  - Press Enter for latest stable (n8.0)
+
+Version: 7
+Using latest version for major 7: n7.1.2
+Selected FFmpeg version: n7.1.2
+```
 
 ## System FFmpeg Handling
 
