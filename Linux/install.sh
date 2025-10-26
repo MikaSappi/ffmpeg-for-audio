@@ -6,7 +6,7 @@ echo "=== FFmpeg Audio Codecs Compilation Script ==="
 echo "This script will compile FFmpeg with essential audio codecs"
 echo ""
 
-# Early version selection - clone FFmpeg repo first to get available versions
+# version selection
 echo "Preparing FFmpeg repository for version selection..."
 cd ~/
 mkdir -p ~/ffmpeg_sources
@@ -171,7 +171,7 @@ sudo ldconfig
 
 echo "libopus installed successfully!"
 
-# SRT (only build if not available from package manager)
+# SRT (if not available from package manager)
 if [ "$SKIP_SRT_BUILD" = false ]; then
     echo "Building SRT from source..."
     cd ~/ffmpeg_sources && \
