@@ -8,8 +8,9 @@ echo ""
 echo "You will be prompted for your password once in the process, after you've selected ffmpeg version."
 
 echo "Setting up directories..."
-mkdir -p ~/ffmpeg_sources ~/bin
-cd ~/ffmpeg_sources
+mkdir -p ~/ffmpeg_sources_static ~/bin
+cd ~/ffmpeg_sources_static
+git -C ffmpeg pull 2> /dev/null || git clone https://git.ffmpeg.org/ffmpeg.git
 
 # Check for Homebrew
 if ! command -v brew &> /dev/null; then
@@ -103,48 +104,61 @@ brew install \
   pkg-config \
   nasm \
   yasm \
-  lame \
-  opus \
-  libvorbis \
-  speex \
-  twolame \
-  opencore-amr \
-  libass \
   freetype \
   sdl2
 
 echo "Dependencies installed successfully!"
 
-# Try to install SRT from Homebrew
-echo "Attempting to install SRT from Homebrew..."
-if brew install srt 2>/dev/null; then
-	echo "SRT installed from Homebrew!"
-	SKIP_SRT_BUILD=true
-else
-	echo "SRT not available from Homebrew, will build from source"
-	SKIP_SRT_BUILD=false
-fi
-
 # libfdk-aac
 echo "Building libfdk-aac..."
-cd ~/ffmpeg_sources
+cd ~/ffmpeg_sources_static
 git -C fdk-aac pull 2> /dev/null || git clone --depth 1 https://github.com/mstorsjo/fdk-aac
 cd fdk-aac
 autoreconf -fiv
-./configure --prefix="/usr/local" --enable-shared
+./configure --prefix="/usr/local/ffmpeg-static" --disable-shared --enable-static
 make -j$CORES
 sudo make install
 
 echo "libfdk-aac installed successfully!"
 
+# libopus
+echo "Building libopus..."
+cd ~/ffmpeg_sources_static
+git -C opus pull 2> /dev/null || git clone --depth 1 https://github.com/xiph/opus.git
+cd opus
+autoreconf -fiv || {
+	echo "autoreconf failed, trying manual setup..."
+	rm -rf autom4te.cache
+	libtoolize --force
+	aclocal
+	autoheader
+	automake --force-missing --add-missing
+	autoconf
+}
+./configure --prefix="/usr/local/ffmpeg-static" --disable-shared --enable-static
+make -j$CORES
+sudo make install
+echo "libopus installed successfully!"
+
+# libmp3lame
+echo "Building libmp3lame..."
+cd ~/ffmpeg_sources_static
+curl -L -O https://sourceforge.net/projects/lame/files/lame/3.100/lame-3.100.tar.gz
+tar xzf lame-3.100.tar.gz
+cd lame-3.100
+./configure --prefix="/usr/local/ffmpeg-static" --disable-shared --enable-static --enable-nasm
+make -j$CORES
+sudo make install
+echo "libmp3lame installed successfully!"
+
 # SRT (if not available from Homebrew)
 if [ "$SKIP_SRT_BUILD" = false ]; then
 	echo "Building SRT from source..."
-	cd ~/ffmpeg_sources
+	cd ~/ffmpeg_sources_static
 	git -C srt pull 2> /dev/null || git clone --depth 1 https://github.com/Haivision/srt.git
 	cd srt
 	mkdir -p build && cd build
-	cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DENABLE_SHARED=ON -DENABLE_STATIC=OFF ..
+	cmake -DCMAKE_INSTALL_prefix="/usr/local/ffmpeg-static" -DENABLE_SHARED=OFF -DENABLE_STATIC=ON ..
 	make -j$CORES
 	sudo make install
 	echo "SRT built and installed successfully!"
@@ -152,28 +166,27 @@ else
 	echo "Using SRT from Homebrew"
 fi
 
+export PKG_CONFIG_PATH="/usr/local/ffmpeg-static/lib/pkgconfig:$PKG_CONFIG_PATH"
+
 # FFmpeg compilation
 echo "Building FFmpeg with audio codecs..."
-cd ~/ffmpeg_sources/ffmpeg
+cd ~/ffmpeg_sources_static/ffmpeg
 
 echo "Checking out FFmpeg version: $SELECTED_VERSION"
 git checkout "$SELECTED_VERSION"
 
-cd ~/ffmpeg_sources/ffmpeg
+cd ~/ffmpeg_sources_static/ffmpeg
 ./configure \
-  --prefix="/usr/local" \
-  --extra-cflags="-I$(brew --prefix)/include -fPIC" \
-  --extra-ldflags="-L$(brew --prefix)/lib" \
-  --enable-shared \
+  --prefix="/usr/local/ffmpeg-static" \
+  --pkg-config-flags="--static" \
+  --extra-ldflags="-L/usr/local/ffmpeg-static/lib" \
+  --extra-cflags="-I/usr/local/ffmpeg-static/include" \
+  --disable-shared \
+  --enable-static \
   --enable-gpl \
   --enable-libfdk-aac \
   --enable-libmp3lame \
   --enable-libopus \
-  --enable-libvorbis \
-  --enable-libspeex \
-  --enable-libtwolame \
-  --enable-libopencore-amrnb \
-  --enable-libopencore-amrwb \
   $(pkg-config --exists srt && echo "--enable-libsrt" || echo "# SRT not available") \
   --enable-nonfree \
   --enable-version3
