@@ -129,7 +129,7 @@ cd opus
 autoreconf -fiv || {
 	echo "autoreconf failed, trying manual setup..."
 	rm -rf autom4te.cache
-	libtoolize --force
+	glibtoolize --force
 	aclocal
 	autoheader
 	automake --force-missing --add-missing
@@ -150,6 +150,22 @@ cd lame-3.100
 make -j$CORES
 sudo make install
 echo "libmp3lame installed successfully!"
+
+echo "Building libsoxr..."
+cd ~/ffmpeg_sources_static
+git -C soxr pull 2> /dev/null || git clone https://github.com/chirlu/soxr.git
+cd soxr
+# Fix CMake version requirement
+sed -i '' 's/cmake_minimum_required(VERSION 3.1 FATAL_ERROR)/cmake_minimum_required(VERSION 3.5 FATAL_ERROR)/' CMakeLists.txt
+mkdir -p build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release \
+	  -DCMAKE_INSTALL_PREFIX="/usr/local/ffmpeg-static" \
+	  -DBUILD_SHARED_LIBS=OFF \
+	  -DWITH_OPENMP=OFF \
+	  ..
+make -j$CORES
+sudo make install
+echo "libsoxr installed successfully!"
 
 # SRT (if not available from Homebrew)
 if [ "$SKIP_SRT_BUILD" = false ]; then
@@ -187,6 +203,7 @@ cd ~/ffmpeg_sources_static/ffmpeg
   --enable-libfdk-aac \
   --enable-libmp3lame \
   --enable-libopus \
+  --enable-libsoxr \
   $(pkg-config --exists srt && echo "--enable-libsrt" || echo "# SRT not available") \
   --enable-nonfree \
   --enable-version3
