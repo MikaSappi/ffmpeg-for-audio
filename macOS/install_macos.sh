@@ -111,7 +111,8 @@ brew install \
   opencore-amr \
   libass \
   freetype \
-  sdl2
+  sdl2 \
+  libsoxr
 
 echo "Dependencies installed successfully!"
 
@@ -176,7 +177,8 @@ cd ~/ffmpeg_sources/ffmpeg
   --enable-libopencore-amrwb \
   $(pkg-config --exists srt && echo "--enable-libsrt" || echo "# SRT not available") \
   --enable-nonfree \
-  --enable-version3
+  --enable-version3 \
+  --enable-libsoxr
 make -j$CORES
 sudo make install
 
