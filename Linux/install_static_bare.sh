@@ -9,8 +9,8 @@ echo ""
 # version selection
 echo "Preparing FFmpeg repository for version selection..."
 cd ~/
-mkdir -p ~/ffmpeg_sources_static
-cd ~/ffmpeg_sources_static
+mkdir -p ~/ffmpeg_sources_static_bare
+cd ~/ffmpeg_sources_static_bare
 git -C ffmpeg pull 2> /dev/null || git clone https://git.ffmpeg.org/ffmpeg.git
 cd ffmpeg
 git fetch --tags > /dev/null 2>&1
@@ -77,7 +77,7 @@ echo ""
 # Setup directories
 echo "Setting up directories..."
 cd ~/ &&
-mkdir -p ~/ffmpeg_sources_static ~/bin &&
+mkdir -p ~/ffmpeg_sources_static_bare ~/bin &&
 
 # Install dependencies
 echo "Installing dependencies..."
@@ -102,7 +102,7 @@ echo "Dependencies installed successfully!"
 
 # NASM
 echo "Building NASM..."
-cd ~/ffmpeg_sources_static
+cd ~/ffmpeg_sources_static_bare
 NASM_VERSION="2.16.03"
 NASM_SHA256="bef3de159bcd61adf98bb7cc87ee9046e944644ad76b7633f18ab063edb29e57"
 wget "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/nasm-${NASM_VERSION}.tar.bz2"
@@ -121,7 +121,7 @@ echo "NASM installed successfully!"
 
 # libfdk-aac
 echo "Building libfdk-aac (static)..."
-cd ~/ffmpeg_sources_static && \
+cd ~/ffmpeg_sources_static_bare && \
 git -C fdk-aac pull 2> /dev/null || git clone --depth 1 https://github.com/mstorsjo/fdk-aac && \
 cd fdk-aac && \
 autoreconf -fiv && \
@@ -133,7 +133,7 @@ echo "libfdk-aac installed successfully!"
 
 # libopus
 echo "Building libopus (static)..."
-cd ~/ffmpeg_sources_static && \
+cd ~/ffmpeg_sources_static_bare && \
 git -C opus pull 2> /dev/null || git clone --depth 1 https://github.com/xiph/opus.git && \
 cd opus && \
 ./autogen.sh && \
@@ -145,7 +145,7 @@ echo "libopus installed successfully!"
 
 # libmp3lame
 echo "Building libmp3lame (static)..."
-cd ~/ffmpeg_sources_static
+cd ~/ffmpeg_sources_static_bare
 if [ ! -f lame-3.100.tar.gz ]; then
     wget https://sourceforge.net/projects/lame/files/lame/3.100/lame-3.100.tar.gz
 fi
@@ -159,7 +159,7 @@ echo "libmp3lame installed successfully!"
 
 # libsoxr
 echo "Building libsoxr (static)..."
-cd ~/ffmpeg_sources_static && \
+cd ~/ffmpeg_sources_static_bare && \
 git -C soxr pull 2> /dev/null || git clone https://github.com/chirlu/soxr.git && \
 cd soxr && \
 mkdir -p build && cd build && \
@@ -186,12 +186,12 @@ fi
 
 # FFmpeg compilation (static)
 echo "Building FFmpeg with audio codecs (static)..."
-cd ~/ffmpeg_sources_static/ffmpeg
+cd ~/ffmpeg_sources_static_bare/ffmpeg
 
 echo "Checking out FFmpeg version: $SELECTED_VERSION"
 git checkout "$SELECTED_VERSION"
 
-cd ~/ffmpeg_sources_static/ffmpeg && \
+cd ~/ffmpeg_sources_static_bare/ffmpeg && \
 PKG_CONFIG_PATH="/usr/local/ffmpeg-static-bare/lib/pkgconfig:$PKG_CONFIG_PATH" \
 ./configure \
   --prefix="/usr/local/ffmpeg-static-bare" \
