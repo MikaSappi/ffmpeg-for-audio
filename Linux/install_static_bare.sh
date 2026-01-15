@@ -207,6 +207,7 @@ PKG_CONFIG_PATH="/usr/local/ffmpeg-static-bare/lib/pkgconfig:$PKG_CONFIG_PATH" \
   --disable-podpages \
   --disable-txtpages \
   --disable-shared \
+  --disable-libopenh264 \
   --enable-static \
   --enable-gpl \
   --enable-libfdk-aac \
