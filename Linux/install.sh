@@ -171,6 +171,23 @@ sudo ldconfig
 
 echo "libopus installed successfully!"
 
+# libsoxr
+echo "Building libsoxr..."
+cd ~/ffmpeg_sources && \
+git -C soxr pull 2> /dev/null || git clone https://github.com/chirlu/soxr.git && \
+cd soxr && \
+mkdir -p build && cd build && \
+cmake -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX="/usr/local" \
+      -DBUILD_SHARED_LIBS=ON \
+      -DWITH_OPENMP=OFF \
+      .. && \
+make -j$CORES && \
+sudo make install
+sudo ldconfig
+
+echo "libsoxr installed successfully!"
+
 # SRT (if not available from package manager)
 if [ "$SKIP_SRT_BUILD" = false ]; then
     echo "Building SRT from source..."
@@ -209,6 +226,7 @@ cd ~/ffmpeg_sources/ffmpeg && \
   --enable-libtwolame \
   --enable-libopencore-amrnb \
   --enable-libopencore-amrwb \
+  --enable-libsoxr \
   $(pkg-config --exists srt && echo "--enable-libsrt" || echo "# SRT not available") \
   --enable-nonfree \
   --enable-version3 && \
@@ -242,6 +260,7 @@ echo "  ✓ libvorbis (Ogg Vorbis)"
 echo "  ✓ libspeex (Speech codec)"
 echo "  ✓ libtwolame (MP2)"
 echo "  ✓ libopencore-amr (AMR-NB/WB for mobile)"
+echo "  ✓ libsoxr (High-quality audio resampling)"
 if pkg-config --exists srt; then
     echo "  ✓ libsrt (Secure Reliable Transport)"
 else
@@ -252,6 +271,7 @@ echo "Compilation used $CORES CPU cores for faster build times."
 echo "You can verify the installation by running:"
 echo "  ffmpeg -version"
 echo "  ffmpeg -codecs | grep -E '(fdk_aac|mp3lame|opus|vorbis|speex|twolame|amr)'"
+echo "  ffmpeg -filters | grep soxr"
 echo ""
 echo "FFmpeg binary location: /usr/local/bin/ffmpeg"
 echo ""
