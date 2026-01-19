@@ -196,7 +196,7 @@ PKG_CONFIG_PATH="/usr/local/ffmpeg-static-bare/lib/pkgconfig:$PKG_CONFIG_PATH" \
 ./configure \
   --prefix="/usr/local/ffmpeg-static-bare" \
   --pkg-config-flags="--static" \
-  --extra-ldflags="-L/usr/local/ffmpeg-static-bare/lib" \
+  --extra-ldflags="-L/usr/local/ffmpeg-static-bare/lib -static" \
   --extra-cflags="-I/usr/local/ffmpeg-static-bare/include" \
   --extra-libs="-lm" \
   --disable-ffplay \
@@ -208,6 +208,15 @@ PKG_CONFIG_PATH="/usr/local/ffmpeg-static-bare/lib/pkgconfig:$PKG_CONFIG_PATH" \
   --disable-txtpages \
   --disable-shared \
   --disable-libopenh264 \
+  --disable-libxcb \
+  --disable-sdl2 \
+  --disable-vaapi \
+  --disable-vdpau \
+  --disable-alsa \
+  --disable-sndio \
+  --disable-libpulse \
+  --disable-xlib \
+  --disable-libdrm \
   --enable-static \
   --enable-gpl \
   --enable-libfdk-aac \
