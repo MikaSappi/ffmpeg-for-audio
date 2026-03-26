@@ -1,37 +1,121 @@
 # FFmpeg Custom Audio Codecs Compilation
 
-Builds FFmpeg from source with essential audio codecs on Debian/Ubuntu systems, including Raspberry Pi. This was built to make our life easier, and I hope it works for you as well.
+Compiles FFmpeg from source with audio codecs on Linux (Debian/Ubuntu, including Raspberry Pi) and macOS.
 
 **Author** Mika Säppi
-**Organization** Collins Group
+**Organization** Fremen
 
 ## Security Notice
 
-This script downloads and compiles software from multiple sources:
+Scripts download and compile from multiple sources (nasm.us with SHA-256 verification, GitHub repos) and require sudo. Review scripts before running and ensure you're on a trusted network.
 
-- Uses NASM from nasm.us with SHA-256 verification
-- Clones source code from GitHub repositories
-- Requires sudo privileges for system installation
+---
 
-**Before running:**
+## Linux versions
 
-- Review the script contents
-- Ensure you're on a trusted network
-- Verify you trust the source repositories
+Scripts in `Linux/`. Each prompts for a version before building.
 
-While this script follows standard build practices and includes security measures,
-compiling from source inherently carries more risk than using package managers.
+### `install.sh` — Full shared build
+
+Shared-library FFmpeg with all codecs, FFprobe, FFplay, manpages, and hardware acceleration.
+
+**Great for:** Desktop use, development, general-purpose media processing.
+
+### `install_static.sh` — Full static build
+
+Statically linked binary with reduced codec set (see table). Includes FFprobe and manpages.
+
+**Great for:** Portable deployments without external library dependencies.
+
+### `install-headless.sh` — Headless shared build
+
+Shared-library build with full codec set. Disables display, audio I/O, and docs (FFplay, SDL2, ALSA, PulseAudio, VAAPI, VDPAU, XCB, X11, DRM, libopenh264, manpages). FFprobe included.
+
+**Great for:** Servers, containers, CI/CD pipelines.
+
+### `install_static_bare.sh` — Minimal static build
+
+Static binary with reduced codec set and the same disables as headless. Pre-compiled x86 binary available (~26 MB, Ubuntu 24.04).
+
+**Great for:** Embedding in applications, microservices, minimal Docker images.
+
+### Comparison (Linux)
+
+| | `install.sh` | `install_static.sh` | `install-headless.sh` | `install_static_bare.sh` |
+|---|:---:|:---:|:---:|:---:|
+| **Linking** | Shared | Static | Shared | Static |
+| **FFprobe** | Yes | Yes | Yes | Yes |
+| **FFplay** | Yes | Yes | No | No |
+| **Manpages** | Yes | Yes | No | No |
+| **Display / HW accel** | Yes | Yes | No | No |
+| **Audio I/O (ALSA, Pulse)** | Yes | Yes | No | No |
+| **GnuTLS** | Yes | No | Yes | No |
+| **libfdk-aac** | Yes | Yes | Yes | Yes |
+| **libmp3lame** | Yes | Yes | Yes | Yes |
+| **libopus** | Yes | Yes | Yes | Yes |
+| **libsoxr** | Yes | Yes | Yes | Yes |
+| **libvorbis** | Yes | No | Yes | No |
+| **libspeex** | Yes | No | Yes | No |
+| **libtwolame** | Yes | No | Yes | No |
+| **libopencore-amr** | Yes | No | Yes | No |
+| **libsrt** | If available | No | If available | No |
+
+---
+
+## macOS versions
+
+Scripts in `macOS/`. Each prompts for a version before building. Requires [Homebrew](https://brew.sh).
+
+### `install_macos.sh` — Full shared build
+
+Shared-library FFmpeg with all codecs, FFprobe, FFplay, and manpages. Most codecs installed via Homebrew; libfdk-aac compiled from source (licensing).
+
+**Great for:** Desktop use, development, general-purpose media processing on macOS.
+
+### `install_macos_static.sh` — Static build
+
+Statically linked binary with reduced codec set. All codec libraries compiled from source. Includes FFprobe and manpages.
+
+**Great for:** Portable deployments, distributing to other Macs, embedding in macOS applications.
+
+### Comparison (macOS)
+
+| | `install_macos.sh` | `install_macos_static.sh` |
+|---|:---:|:---:|
+| **Linking** | Shared | Static |
+| **FFprobe** | Yes | Yes |
+| **FFplay** | Yes | Yes |
+| **Manpages** | Yes | Yes |
+| **libfdk-aac** | Yes | Yes |
+| **libmp3lame** | Yes | Yes |
+| **libopus** | Yes | Yes |
+| **libsoxr** | Yes | Yes |
+| **libvorbis** | Yes | No |
+| **libspeex** | Yes | No |
+| **libtwolame** | Yes | No |
+| **libopencore-amr** | Yes | No |
+| **libsrt** | If available | If available |
+
+---
 
 ## Included Codecs
 
-- **libfdk-aac** - High-quality AAC encoding
-- **libmp3lame** - MP3 encoding
-- **libopus** - Modern low-latency codec
-- **libvorbis** - Ogg Vorbis
-- **libspeex** - Speech codec
-- **libtwolame** - MP2 encoding
-- **libopencore-amr** - AMR-NB/WB for mobile
-- **libsrt** - Secure Reliable Transport (conditional)
+All builds include:
+
+- **libfdk-aac** — AAC encoding
+- **libmp3lame** — MP3 encoding
+- **libopus** — Low-latency codec
+- **libsoxr** — Audio resampling
+
+Full (shared) builds also include:
+
+- **libvorbis** — Ogg Vorbis
+- **libspeex** — Speech codec
+- **libtwolame** — MP2 encoding
+- **libopencore-amr** — AMR-NB/WB
+- **libsrt** — Secure Reliable Transport (if available)
+
+---
 
 ## Installation
 
@@ -39,13 +123,11 @@ compiling from source inherently carries more risk than using package managers.
 bash install.sh
 ```
 
-**Time:** 5-30 minutes depending on system
-**Space:** ~2GB in `~/ffmpeg_sources`
+**Time:** 5-30 minutes | **Space:** ~2GB
 
-### Version prompt
-The script now prompts you for what version would you like to install. If unsure, press Enter (leaving the field empty) and you'll get the latest stable version.
+### Version selection
 
-Example:
+Each script prompts for a version. Press Enter for the latest stable release.
 
 ```
 === FFmpeg Version Selection ===
@@ -58,275 +140,83 @@ Available major versions:
   7 -> n7.1.2
   8 -> n8.0
 
-Enter version to install:
-  - Full version (e.g., n7.0.2, n6.1.1)
-  - Major version number (e.g., 7 for latest n7.x.y)
-  - Press Enter for latest stable (n8.0)
-
 Version: 7
 Using latest version for major 7: n7.1.2
-Selected FFmpeg version: n7.1.2
 ```
 
 ## System FFmpeg Handling
 
-The script detects existing FFmpeg installations (common on Pi OS due to Hailo TAPPAS dependencies) and:
+On Linux, if a system FFmpeg exists (e.g., Pi OS with Hailo TAPPAS):
 
-- Creates backup at `/usr/bin/ffmpeg.backup`
-- Installs custom build to `/usr/local/bin/ffmpeg`
-- Updates PATH to prioritize custom build
-- Creates `ffmpeg-system` command for accessing original
+- Backup created at `/usr/bin/ffmpeg.backup`
+- Custom build installed to `/usr/local/bin/ffmpeg`
+- `ffmpeg-system` command created for the original
 
-## Usage
+On macOS, if Homebrew FFmpeg exists:
 
-After installation:
-
-```bash
-ffmpeg -version                    # Custom build with audio codecs
-ffmpeg-system -version             # Original system build (if existed)
-```
+- `ffmpeg-brew` command created for the Homebrew version
 
 ## Verification
 
-Check available encoders:
-
 ```bash
+ffmpeg -version
 ffmpeg -encoders | grep -E "(fdk|opus|vorbis|speex|twolame|amr)"
 ```
 
 ## Requirements
 
-- Debian/Ubuntu based system
-- ~2GB free space
-- Internet connection
-- sudo privileges
-
-## Troubleshooting
-
-**Missing codec after build:**
-
-```bash
-which ffmpeg                       # Should show /usr/local/bin/ffmpeg
-export PATH="/usr/local/bin:$PATH" # If not in PATH
-```
-
-**SRT support unavailable:**
-Normal on some ARM systems. Script continues without SRT if build fails.
-
-**System dependencies:**
-The script preserves system FFmpeg to maintain compatibility with installed packages.
-
-## Files Created
-
-- `~/ffmpeg_sources/` - Source code and builds
-- `/usr/local/bin/ffmpeg` - Custom FFmpeg binary
-- `/usr/local/lib/libfdk-aac*` - FDK-AAC libraries
-- `/usr/local/bin/ffmpeg-system` - Link to original (if existed)
+**Linux:** Debian/Ubuntu, ~2GB free, internet, sudo
+**macOS:** Homebrew, ~2GB free, internet, sudo
 
 ## Removal
 
-To revert to system FFmpeg:
-
+Linux:
 ```bash
 sudo rm /usr/local/bin/ffmpeg
 sudo mv /usr/bin/ffmpeg.backup /usr/bin/ffmpeg  # If backup exists
 ```
 
-## Should it fail
-
-If the installation fails for some reason, please remove `~/ffmpeg_sources` before trying again.
-
-# FFmpeg Compilation Troubleshooting
-
-## Build Failures
-
-### "Package 'openssl', required by 'virtual:world', not found"
-
-**Cause:** Missing OpenSSL development libraries
-**Fix:**
-
+macOS:
 ```bash
-sudo apt-get install libssl-dev libcrypto++-dev
+sudo rm /usr/local/bin/ffmpeg
 ```
 
-### "srt >= 1.3.0 not found using pkg-config"
+If a build fails, remove `~/ffmpeg_sources` (or `~/ffmpeg_sources_static`, `~/ffmpeg_sources_static_bare`) and retry.
 
-**Cause:** SRT library unavailable on ARM/older systems
-**Fix:** Script continues without SRT. To force SRT:
+---
 
-```bash
-sudo apt-get install libsrt-openssl-dev || sudo apt-get install libsrt-gnutls-dev
-```
+## Troubleshooting
 
-### "autoreconf: command not found"
+### Build errors
 
-**Cause:** Missing autotools
-**Fix:**
+| Error | Fix |
+|---|---|
+| `Package 'openssl' not found` | `sudo apt-get install libssl-dev libcrypto++-dev` |
+| `srt >= 1.3.0 not found` | Script continues without SRT. To force: `sudo apt-get install libsrt-openssl-dev` |
+| `autoreconf: command not found` | `sudo apt-get install autoconf automake libtool` |
+| `C compiler cannot create executables` | `sudo apt-get install build-essential` |
+| `No space left on device` | Need ~2GB free. Run `sudo apt-get clean` |
 
-```bash
-sudo apt-get install autoconf automake libtool
-```
+### Runtime errors
 
-### "configure: error: C compiler cannot create executables"
-
-**Cause:** Missing build essentials
-**Fix:**
-
-```bash
-sudo apt-get install build-essential gcc g++
-```
-
-### "make: command not found"
-
-**Cause:** Missing make utility
-**Fix:**
-
-```bash
-sudo apt-get install make
-```
-
-## Runtime Issues
-
-### Custom FFmpeg not found after build
-
-**Cause:** PATH not updated
-**Fix:**
-
-```bash
-export PATH="/usr/local/bin:$PATH"
-echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-### "libfdk_aac not found" after successful build
-
-**Cause:** Using system FFmpeg instead of custom build
-**Check:**
-
-```bash
-which ffmpeg                    # Should show /usr/local/bin/ffmpeg
-ffmpeg -version | grep fdk      # Should show libfdk-aac in config
-```
-
-**Fix:**
-
-```bash
-/usr/local/bin/ffmpeg -version  # Use full path
-```
-
-### "error while loading shared libraries"
-
-**Cause:** Library paths not updated
-**Fix:**
-
-```bash
-sudo ldconfig
-export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
-```
-
-## Space and Performance Issues
-
-### "No space left on device"
-
-**Cause:** Insufficient disk space (needs ~2GB)
-**Fix:**
-
-```bash
-df -h                          # Check available space
-sudo apt-get clean             # Clear package cache
-rm -rf ~/ffmpeg_sources        # Remove if partial build
-```
-
-### Extremely slow compilation
-
-**Cause:** Using single core compilation
-**Fix:** Script automatically uses all cores. To manually adjust:
-
-```bash
-make -j$(nproc)               # Use all cores
-make -j2                      # Use 2 cores
-```
-
-### System becomes unresponsive during build
-
-**Cause:** Too many parallel jobs on low-RAM systems
-**Fix:** Edit script, reduce cores:
-
-```bash
-CORES=$(($(nproc) / 2))       # Use half available cores
-```
-
-## Network and Download Issues
-
-### "wget: unable to resolve host address"
-
-**Cause:** DNS/network issues
-**Fix:**
-
-```bash
-ping google.com               # Test connectivity
-sudo systemctl restart systemd-resolved
-```
-
-### Git clone failures
-
-**Cause:** Network timeouts or repository issues
-**Fix:**
-
-```bash
-git config --global http.postBuffer 1048576000
-git config --global http.maxRequestBuffer 100M
-```
-
-## Permission Issues
-
-### "Permission denied" during installation
-
-**Cause:** Insufficient privileges for system directories
-**Fix:**
-
-```bash
-sudo make install             # Use sudo for installation steps
-sudo ldconfig                # Update library cache
-```
-
-### Cannot write to /usr/local
-
-**Cause:** Directory permissions
-**Fix:**
-
-```bash
-sudo chown -R $(whoami) /usr/local/src
-# Or use sudo for the entire script
-```
-
-## Recovery Commands
+| Problem | Fix |
+|---|---|
+| Custom FFmpeg not found | `export PATH="/usr/local/bin:$PATH"` and add to `~/.bashrc` |
+| `libfdk_aac not found` | Check `which ffmpeg` shows `/usr/local/bin/ffmpeg`, not system version |
+| `error while loading shared libraries` | Run `sudo ldconfig` |
+| System unresponsive during build | Edit script: `CORES=$(($(nproc) / 2))` |
 
 ### Clean rebuild
 
 ```bash
 rm -rf ~/ffmpeg_sources
 sudo rm -f /usr/local/bin/ffmpeg
-sudo rm -f /usr/local/lib/libfdk-aac*
 ./install.sh
 ```
 
-### Revert to system FFmpeg
+### Debug a failed build
 
 ```bash
-sudo mv /usr/bin/ffmpeg.backup /usr/bin/ffmpeg
-sudo rm /usr/local/bin/ffmpeg
-# Remove custom PATH from ~/.bashrc
-```
-
-### Check what went wrong
-
-```bash
-# Check last build logs
-cd ~/ffmpeg_sources/ffmpeg
-tail -50 config.log
-
-# Check library installation
+cd ~/ffmpeg_sources/ffmpeg && tail -50 config.log
 pkg-config --list-all | grep -E "(fdk|opus|srt)"
-ls -la /usr/local/lib/lib*
 ```
