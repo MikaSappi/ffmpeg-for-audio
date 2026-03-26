@@ -9,6 +9,10 @@ Compiles FFmpeg from source with audio codecs on Linux (Debian/Ubuntu, including
 
 Scripts download and compile from multiple sources (nasm.us with SHA-256 verification, GitHub repos) and require sudo. Review scripts before running and ensure you're on a trusted network.
 
+## Pre-compiled binaries for x86-64 Linux
+
+Find [here](https://github.com/MikaSappi/ffmpeg-for-audio/releases).
+
 ---
 
 ## Linux versions
