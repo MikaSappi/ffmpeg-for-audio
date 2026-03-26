@@ -196,7 +196,7 @@ PKG_CONFIG_PATH="/usr/local/ffmpeg-static/lib/pkgconfig:$PKG_CONFIG_PATH" \
 ./configure \
   --prefix="/usr/local/ffmpeg-static" \
   --pkg-config-flags="--static" \
-  --extra-ldflags="-L/usr/local/ffmpeg-static/lib" \
+  --extra-ldflags="-L/usr/local/ffmpeg-static/lib -static" \
   --extra-cflags="-I/usr/local/ffmpeg-static/include" \
   --extra-libs="-lm" \
   --disable-shared \
