@@ -181,6 +181,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX="/usr/local" \
       -DBUILD_SHARED_LIBS=ON \
       -DWITH_OPENMP=OFF \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
       .. && \
 make -j$CORES && \
 sudo make install
@@ -195,7 +196,7 @@ if [ "$SKIP_SRT_BUILD" = false ]; then
     git -C srt pull 2> /dev/null || git clone --depth 1 https://github.com/Haivision/srt.git && \
     cd srt && \
     mkdir -p build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DENABLE_SHARED=ON -DENABLE_STATIC=OFF -DUSE_OPENSSL_PC=OFF .. && \
+    cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DENABLE_SHARED=ON -DENABLE_STATIC=OFF -DUSE_OPENSSL_PC=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. && \
     make -j$CORES && \
     sudo make install && \
     sudo ldconfig

@@ -167,6 +167,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX="/usr/local/ffmpeg-static" \
       -DBUILD_SHARED_LIBS=OFF \
       -DWITH_OPENMP=OFF \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
       .. && \
 make -j$CORES && \
 sudo make install

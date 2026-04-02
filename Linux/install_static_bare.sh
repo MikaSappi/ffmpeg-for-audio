@@ -163,12 +163,12 @@ cd ~/ffmpeg_sources_static_bare
 rm -rf soxr
 git clone https://github.com/chirlu/soxr.git
 cd soxr
-sed -i '4s/.*/cmake_minimum_required(VERSION 3.5 FATAL_ERROR)/' CMakeLists.txt
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release \
 	  -DCMAKE_INSTALL_PREFIX="/usr/local/ffmpeg-static-bare" \
 	  -DBUILD_SHARED_LIBS=OFF \
 	  -DWITH_OPENMP=OFF \
+	  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 	  .. && \
 make -j$CORES && \
 sudo make install
