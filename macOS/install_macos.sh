@@ -155,12 +155,12 @@ fi
 
 # FFmpeg compilation
 echo "Building FFmpeg with audio codecs..."
-cd ~/ffmpeg_sources/ffmpeg
+cd ~/ffmpeg_sources
+git -C ffmpeg fetch --all --tags 2> /dev/null || git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
+cd ffmpeg
 
 echo "Checking out FFmpeg version: $SELECTED_VERSION"
 git checkout "$SELECTED_VERSION"
-
-cd ~/ffmpeg_sources/ffmpeg
 ./configure \
   --prefix="/usr/local" \
   --extra-cflags="-I$(brew --prefix)/include -fPIC" \
