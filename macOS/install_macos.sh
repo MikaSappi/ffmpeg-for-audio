@@ -145,7 +145,7 @@ if [ "$SKIP_SRT_BUILD" = false ]; then
 	git -C srt pull 2> /dev/null || git clone --depth 1 https://github.com/Haivision/srt.git
 	cd srt
 	mkdir -p build && cd build
-	cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DENABLE_SHARED=ON -DENABLE_STATIC=OFF ..
+	cmake -DCMAKE_INSTALL_PREFIX="/usr/local" -DENABLE_SHARED=ON -DENABLE_STATIC=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
 	make -j$CORES
 	sudo make install
 	echo "SRT built and installed successfully!"

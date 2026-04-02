@@ -155,13 +155,12 @@ echo "Building libsoxr..."
 cd ~/ffmpeg_sources_static
 git -C soxr pull 2> /dev/null || git clone https://github.com/chirlu/soxr.git
 cd soxr
-# Fix CMake version requirement
-sed -i '' 's/cmake_minimum_required(VERSION 3.1 FATAL_ERROR)/cmake_minimum_required(VERSION 3.5 FATAL_ERROR)/' CMakeLists.txt
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release \
 	  -DCMAKE_INSTALL_PREFIX="/usr/local/ffmpeg-static" \
 	  -DBUILD_SHARED_LIBS=OFF \
 	  -DWITH_OPENMP=OFF \
+	  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 	  ..
 make -j$CORES
 sudo make install
@@ -174,7 +173,7 @@ if [ "$SKIP_SRT_BUILD" = false ]; then
 	git -C srt pull 2> /dev/null || git clone --depth 1 https://github.com/Haivision/srt.git
 	cd srt
 	mkdir -p build && cd build
-	cmake -DCMAKE_INSTALL_prefix="/usr/local/ffmpeg-static" -DENABLE_SHARED=OFF -DENABLE_STATIC=ON ..
+	cmake -DCMAKE_INSTALL_PREFIX="/usr/local/ffmpeg-static" -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
 	make -j$CORES
 	sudo make install
 	echo "SRT built and installed successfully!"
