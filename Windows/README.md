@@ -1,23 +1,10 @@
-# FFmpeg Static Auto-Builds
+# Original repository: [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds)
 
-Static Windows (x86_64) and Linux (x86_64) Builds of ffmpeg master and latest release branch.
+This is a modified version to output FFmpeg in a specific format.
 
-Windows builds are targetting Windows 7 and newer, provided UCRT is installed.
-The minimum supported version is Windows 10 22H2, no guarantees on anything older.
+Contents in the `Windows` directory are licensed per the [original license](Windows/LICENSE.md).
 
-Linux builds are targetting RHEL/CentOS 8 (glibc-2.28 + linux-4.18) and anything more recent.
-
-## Auto-Builds
-
-Builds run daily at 12:00 UTC (or GitHubs idea of that time) and are automatically released on success.
-
-**Auto-Builds run ONLY for win64 and linux(arm)64. There are no win32/x86 auto-builds, though you can produce win32 builds yourself following the instructions below.**
-
-### Release Retention Policy
-
-- The last build of each month is kept for two years.
-- The last 14 daily builds are kept.
-- The special "latest" build floats and provides consistent URLs always pointing to the latest build.
+Please note that `scripts.d` doesn't contain all of the files it normally would. Disabled components are in `scripts.d.disabled`. Please also note that `50-fdk-aac.sh` contains optional flags that may or may not work for you.
 
 ## Package List
 
