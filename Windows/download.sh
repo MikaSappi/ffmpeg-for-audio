@@ -16,6 +16,7 @@ trap "rm -rf -- '$DL_SCRIPT_DIR'" EXIT
 
 mkdir -p "${PWD}"/.cache/downloads
 
+shopt -s nullglob
 for STAGE in scripts.d/*.sh scripts.d/*/*.sh; do
 	STAGENAME="$(basename "$STAGE" | sed 's/.sh$//')"
 
