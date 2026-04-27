@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: echo "7" | bash Linux/install_static_bare.sh
-      - run: cp /usr/local/ffmpeg-static/bin/ffmpeg ./ffmpeg-${{ matrix.os }}
+      - run: cp /usr/local/ffmpeg-static-bare/bin/ffmpeg ./ffmpeg-${{ matrix.os }}
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-${{ matrix.os }}
