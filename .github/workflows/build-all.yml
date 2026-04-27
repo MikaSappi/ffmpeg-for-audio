@@ -37,9 +37,59 @@ jobs:
 
   build-windows:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
     - uses: actions/checkout@v4
-    - run: bash Windows/makeimage.sh win64 nonfree 7.1
+
+    - uses: docker/setup-buildx-action@v3
+
+    - uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Compute build image cache tag
+      id: imgkey
+      run: |
+        REPO="${{ github.repository }}"
+        REPO="${REPO,,}"
+        KEY=$(sha256sum Windows/Dockerfile | cut -c1-16)
+        echo "image=ghcr.io/${REPO}/win64-nonfree-7.1:${KEY}" >> $GITHUB_OUTPUT
+
+    - name: Try to restore build image from GHCR
+      id: imgcache
+      run: |
+        REPO="${{ github.repository }}"
+        REPO="${REPO,,}"
+        if docker pull "${{ steps.imgkey.outputs.image }}" 2>/dev/null; then
+          docker tag "${{ steps.imgkey.outputs.image }}" "ghcr.io/${REPO}/win64-nonfree-7.1:latest"
+          echo "hit=true" >> $GITHUB_OUTPUT
+        else
+          echo "hit=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build Windows Docker image
+      if: steps.imgcache.outputs.hit != 'true'
+      run: |
+        REPO="${{ github.repository }}"
+        REPO="${REPO,,}"
+        if docker pull "ghcr.io/${REPO}/base-win64:latest" 2>/dev/null; then
+          export QUICKBUILD=1
+        fi
+        NOCLEAN=1 bash Windows/makeimage.sh win64 nonfree 7.1
+
+    - name: Push build image to GHCR
+      if: steps.imgcache.outputs.hit != 'true'
+      run: |
+        REPO="${{ github.repository }}"
+        REPO="${REPO,,}"
+        docker tag "ghcr.io/${REPO}/win64-nonfree-7.1:latest" "${{ steps.imgkey.outputs.image }}"
+        docker push "${{ steps.imgkey.outputs.image }}"
+        docker push "ghcr.io/${REPO}/base:latest" 2>/dev/null || true
+        docker push "ghcr.io/${REPO}/base-win64:latest" 2>/dev/null || true
+
     - run: bash Windows/build.sh win64 nonfree 7.1
     - run: |
         mkdir extracted_zip

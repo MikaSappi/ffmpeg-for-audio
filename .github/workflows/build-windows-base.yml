@@ -1,0 +1,70 @@
+name: Build Windows Base Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Windows/images/**'
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+jobs:
+  build-base:
+    runs-on: ubuntu-latest
+    outputs:
+      registry: ${{ steps.vars.outputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute registry path
+        id: vars
+        run: |
+          REPO="${{ github.repository }}"
+          echo "registry=ghcr.io/${REPO,,}" >> $GITHUB_OUTPUT
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: Windows/images/base
+          push: true
+          tags: ${{ steps.vars.outputs.registry }}/base:latest
+          cache-from: type=gha,scope=windows-base
+          cache-to: type=gha,mode=max,scope=windows-base
+
+  build-base-win64:
+    runs-on: ubuntu-latest
+    needs: build-base
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute registry path
+        id: vars
+        run: |
+          REPO="${{ github.repository }}"
+          echo "registry=ghcr.io/${REPO,,}" >> $GITHUB_OUTPUT
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: Windows/images/base-win64
+          build-args: GH_REPO=${{ steps.vars.outputs.registry }}
+          push: true
+          tags: ${{ steps.vars.outputs.registry }}/base-win64:latest
+          cache-from: type=gha,scope=windows-base-win64
+          cache-to: type=gha,mode=max,scope=windows-base-win64
