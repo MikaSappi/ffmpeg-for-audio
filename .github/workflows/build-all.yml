@@ -14,26 +14,26 @@ jobs:
         os: [macos-latest, macos-15-intel]
     steps:
       - uses: actions/checkout@v4
-      - run: echo "7" | bash macOS/install_macos_static.sh
-      - run: mv ffmpeg ffmpeg-${{ matrix.os }} || true
+      - run: echo "7" | sudo bash macOS/install_macos_static.sh
+      - run: cp /usr/local/ffmpeg-static/bin/ffmpeg ./ffmpeg-${{ matrix.os }}
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-${{ matrix.os }}
-          path: ffmpeg*
+          path: ffmpeg-${{ matrix.os }}
 
   build-linux:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-          os: [ubuntu-24.04, ubuntu-24.04-arm]
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
     steps:
       - uses: actions/checkout@v4
-      - run: echo "7" | bash Linux/install_static_bare.sh
-      - run: mv ffmpeg ffmpeg-${{ matrix.os }} || true
+      - run: echo "7" | sudo bash Linux/install_static_bare.sh
+      - run: cp /usr/local/ffmpeg-static/bin/ffmpeg ./ffmpeg-${{ matrix.os }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg-linux
-          path: ffmpeg*
+          name: ffmpeg-${{ matrix.os }}
+          path: ffmpeg-${{ matrix.os }}
 
   build-windows:
     runs-on: ubuntu-latest
