@@ -22,11 +22,14 @@ jobs:
           path: ffmpeg*
 
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+          os: [ubuntu-24.04, ubuntu-24.04-arm]
     steps:
       - uses: actions/checkout@v4
       - run: echo "7" | bash Linux/install_static_bare.sh
-      - run: mv ffmpeg ffmpeg-linux || true
+      - run: mv ffmpeg ffmpeg-${{ matrix.os }} || true
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-linux
