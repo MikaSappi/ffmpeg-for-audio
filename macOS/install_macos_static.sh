@@ -10,7 +10,11 @@ echo "You will be prompted for your password once in the process, after you've s
 echo "Setting up directories..."
 mkdir -p ~/ffmpeg_sources_static ~/bin
 cd ~/ffmpeg_sources_static
-git -C ffmpeg pull 2> /dev/null || git clone https://git.ffmpeg.org/ffmpeg.git
+if [ -d ffmpeg/.git ]; then
+	git -C ffmpeg fetch --all --tags
+else
+	git clone https://git.ffmpeg.org/ffmpeg.git
+fi
 
 # Check for Homebrew
 if ! command -v brew &> /dev/null; then
@@ -104,8 +108,7 @@ brew install \
   pkg-config \
   nasm \
   yasm \
-  freetype \
-  sdl2
+  freetype
 
 echo "Dependencies installed successfully!"
 
@@ -166,20 +169,41 @@ make -j$CORES
 sudo make install
 echo "libsoxr installed successfully!"
 
-# SRT (if not available from Homebrew)
-if [ "$SKIP_SRT_BUILD" = false ]; then
-	echo "Building SRT from source..."
-	cd ~/ffmpeg_sources_static
-	git -C srt pull 2> /dev/null || git clone --depth 1 https://github.com/Haivision/srt.git
-	cd srt
-	mkdir -p build && cd build
-	cmake -DCMAKE_INSTALL_PREFIX="/usr/local/ffmpeg-static" -DENABLE_SHARED=OFF -DENABLE_STATIC=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-	make -j$CORES
-	sudo make install
-	echo "SRT built and installed successfully!"
+# OpenSSL (static) — required by SRT; must come before it
+echo "Building OpenSSL..."
+cd ~/ffmpeg_sources_static
+OPENSSL_VER=openssl-3.3.2
+[ -f "${OPENSSL_VER}.tar.gz" ] || curl -L -O "https://www.openssl.org/source/${OPENSSL_VER}.tar.gz"
+tar xzf "${OPENSSL_VER}.tar.gz"
+cd "$OPENSSL_VER"
+ARCH=$(uname -m)
+if [ "$ARCH" = "arm64" ]; then
+	OPENSSL_TARGET="darwin64-arm64-cc"
 else
-	echo "Using SRT from Homebrew"
+	OPENSSL_TARGET="darwin64-x86_64-cc"
 fi
+./Configure --prefix="/usr/local/ffmpeg-static" no-shared "$OPENSSL_TARGET"
+make -j$CORES
+sudo make install_sw
+echo "OpenSSL installed successfully!"
+
+# SRT (always built from source against static OpenSSL)
+echo "Building SRT from source..."
+cd ~/ffmpeg_sources_static
+git -C srt pull 2> /dev/null || git clone --depth 1 https://github.com/Haivision/srt.git
+cd srt
+mkdir -p build && cd build
+cmake -DCMAKE_INSTALL_PREFIX="/usr/local/ffmpeg-static" \
+      -DCMAKE_PREFIX_PATH="/usr/local/ffmpeg-static" \
+      -DENABLE_SHARED=OFF \
+      -DENABLE_STATIC=ON \
+      -DOPENSSL_ROOT_DIR="/usr/local/ffmpeg-static" \
+      -DOPENSSL_USE_STATIC_LIBS=TRUE \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+      ..
+make -j$CORES
+sudo make install
+echo "SRT built and installed successfully!"
 
 export PKG_CONFIG_PATH="/usr/local/ffmpeg-static/lib/pkgconfig:$PKG_CONFIG_PATH"
 
@@ -191,6 +215,7 @@ echo "Checking out FFmpeg version: $SELECTED_VERSION"
 git checkout "$SELECTED_VERSION"
 
 cd ~/ffmpeg_sources_static/ffmpeg
+make distclean 2>/dev/null || true
 ./configure \
   --prefix="/usr/local/ffmpeg-static" \
   --pkg-config-flags="--static" \
@@ -198,12 +223,40 @@ cd ~/ffmpeg_sources_static/ffmpeg
   --extra-cflags="-I/usr/local/ffmpeg-static/include" \
   --disable-shared \
   --enable-static \
+  --disable-ffplay \
+  --disable-sdl2 \
+  --disable-libxcb \
+  --disable-xlib \
+  --disable-encoders \
+  --enable-encoder=aac \
+  --enable-encoder=ac3 \
+  --enable-encoder=eac3 \
+  --enable-encoder=flac \
+  --enable-encoder=opus \
+  --enable-encoder=vorbis \
+  --enable-encoder=mp2 \
+  --enable-encoder=mp2float \
+  --enable-encoder=pcm_s8 \
+  --enable-encoder=pcm_s16le \
+  --enable-encoder=pcm_s16be \
+  --enable-encoder=pcm_s24le \
+  --enable-encoder=pcm_s24be \
+  --enable-encoder=pcm_s32le \
+  --enable-encoder=pcm_s32be \
+  --enable-encoder=pcm_f32le \
+  --enable-encoder=pcm_f32be \
+  --enable-encoder=pcm_alaw \
+  --enable-encoder=pcm_mulaw \
+  --enable-encoder=libfdk_aac \
+  --enable-encoder=libmp3lame \
+  --enable-encoder=libopus \
   --enable-gpl \
   --enable-libfdk-aac \
   --enable-libmp3lame \
   --enable-libopus \
   --enable-libsoxr \
-  $(pkg-config --exists srt && echo "--enable-libsrt" || echo "# SRT not available") \
+  --enable-libsrt \
+  --enable-openssl \
   --enable-nonfree \
   --enable-version3
 make -j$CORES
@@ -238,15 +291,8 @@ echo "FFmpeg version $SELECTED_VERSION has been successfully compiled with the f
 echo "  ✓ libfdk-aac (High-quality AAC)"
 echo "  ✓ libmp3lame (MP3)"
 echo "  ✓ libopus (Modern codec for streaming)"
-echo "  ✓ libvorbis (Ogg Vorbis)"
-echo "  ✓ libspeex (Speech codec)"
-echo "  ✓ libtwolame (MP2)"
-echo "  ✓ libopencore-amr (AMR-NB/WB for mobile)"
-if pkg-config --exists srt; then
-	echo "  ✓ libsrt (Secure Reliable Transport)"
-else
-	echo "  ⚠ libsrt (Not available on this system)"
-fi
+echo "  ✓ libsoxr (High-quality resampling)"
+echo "  ✓ libsrt (Secure Reliable Transport)"
 echo ""
 echo "Compilation used $CORES CPU cores for faster build times."
 echo "You can verify the installation by running:"
