@@ -246,7 +246,7 @@ echo "Compilation used $CORES CPU cores for faster build times."
 echo ""
 echo "Verify the static build:"
 echo "  ldd /usr/local/bin/ffmpeg  # Should show 'not a dynamic executable' or only libc"
-echo "  ffmpeg -version"
+echo "  "
 echo "  ffmpeg -encoders | grep -E '(fdk|mp3lame|opus)'"
 echo "  ffmpeg -filters | grep soxr"
 echo ""
@@ -257,7 +257,7 @@ echo "Note: Using all CPU cores during compilation may have made your system"
 echo "temporarily slow or unresponsive. This is normal and should now be resolved."
 echo ""
 echo "=== FFmpeg Version Information ==="
-ffmpeg -version
+
 echo ""
 echo "=== Checking for dynamic dependencies ==="
 ldd /usr/local/bin/ffmpeg

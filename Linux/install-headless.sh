@@ -286,7 +286,7 @@ fi
 echo ""
 echo "Compilation used $CORES CPU cores for faster build times."
 echo "You can verify the installation by running:"
-echo "  ffmpeg -version"
+echo "  "
 echo "  ffmpeg -codecs | grep -E '(fdk_aac|mp3lame|opus|vorbis|speex|twolame|amr)'"
 echo "  ffmpeg -filters | grep soxr"
 echo ""
@@ -296,4 +296,4 @@ echo "Note: Using all CPU cores during compilation may have made your system"
 echo "temporarily slow or unresponsive. This is normal and should now be resolved."
 echo ""
 echo "=== FFmpeg Version Information ==="
-ffmpeg -version
+

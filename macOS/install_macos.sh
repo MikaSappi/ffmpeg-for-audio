@@ -223,7 +223,7 @@ fi
 echo ""
 echo "Compilation used $CORES CPU cores for faster build times."
 echo "You can verify the installation by running:"
-echo "  ffmpeg -version"
+echo "  "
 echo "  ffmpeg -codecs | grep -E '(fdk_aac|mp3lame|opus|vorbis|speex|twolame|amr)'"
 echo ""
 echo "FFmpeg binary location: /usr/local/bin/ffmpeg"
@@ -232,4 +232,3 @@ echo "Note: You may need to restart your terminal or run 'source ~/.zshrc' (or ~
 echo "for PATH changes to take effect."
 echo ""
 echo "=== FFmpeg Version Information ==="
-ffmpeg -version
