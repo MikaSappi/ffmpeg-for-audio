@@ -38,17 +38,17 @@ jobs:
   build-windows:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: bash Windows/makeimage.sh win64 nonfree 7.1
-      - run: bash Windows/build.sh win64 nonfree 7.1
-      - run: |
-          mkdir extracted_zip
-          unzip -j artifacts/*.zip -d extracted_zip
-          find extracted_zip -type f -exec mv {} ffmpeg.exe \;
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ffmpeg-windows
-          path: ffmpeg.exe
+    - uses: actions/checkout@v4
+    - run: bash Windows/makeimage.sh win64 nonfree 7.1
+    - run: bash Windows/build.sh win64 nonfree 7.1
+    - run: |
+        mkdir extracted_zip
+        unzip -j Windows/artifacts/*.zip -d extracted_zip
+        find extracted_zip -type f -name "ffmpeg.exe" -exec mv {} . \;
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ffmpeg-windows
+        path: ffmpeg.exe
 
   release:
     needs: [build-macos, build-linux, build-windows]
