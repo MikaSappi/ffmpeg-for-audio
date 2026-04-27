@@ -228,6 +228,7 @@ make distclean 2>/dev/null || true
   --disable-libxcb \
   --disable-xlib \
   --disable-encoders \
+  --enable-encoder=aac_at \
   --enable-encoder=aac \
   --enable-encoder=ac3 \
   --enable-encoder=eac3 \

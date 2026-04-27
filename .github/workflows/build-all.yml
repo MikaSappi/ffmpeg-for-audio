@@ -1,0 +1,62 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash macOS/install_macos_static.sh
+      - run: mv ffmpeg ffmpeg-${{ matrix.os }} || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ matrix.os }}
+          path: ffmpeg*
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash Linux/install_static_bare.sh
+      - run: mv ffmpeg ffmpeg-linux || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-linux
+          path: ffmpeg*
+
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash Windows/makeimage.sh win64 nonfree 7.1
+      - run: bash Windows/build.sh win64 nonfree 7.1
+      - run: |
+          mkdir extracted_zip
+          unzip -j *.zip -d extracted_zip
+          find extracted_zip -type f -exec mv {} ffmpeg.exe \;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-windows
+          path: ffmpeg.exe
+
+  release:
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
+          files: release-artifacts/**/*
