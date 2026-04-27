@@ -43,7 +43,7 @@ jobs:
       - run: bash Windows/build.sh win64 nonfree 7.1
       - run: |
           mkdir extracted_zip
-          unzip -j *.zip -d extracted_zip
+          unzip -j artifacts/*.zip -d extracted_zip
           find extracted_zip -type f -exec mv {} ffmpeg.exe \;
       - uses: actions/upload-artifact@v4
         with:
