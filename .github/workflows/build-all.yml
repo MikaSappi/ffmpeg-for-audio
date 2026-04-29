@@ -55,7 +55,14 @@ jobs:
       run: |
         REPO="${{ github.repository }}"
         REPO="${REPO,,}"
-        KEY=$(sha256sum Windows/Dockerfile | cut -c1-16)
+        KEY=$(
+          {
+            find Windows/scripts.d Windows/variants Windows/addins Windows/util Windows/images Windows/patches -type f -print0 \
+              | sort -z \
+              | xargs -0 sha256sum
+            sha256sum Windows/generate.sh Windows/makeimage.sh Windows/download.sh
+          } | sha256sum | cut -c1-16
+        )
         echo "image=ghcr.io/${REPO}/win64-nonfree-7.1:${KEY}" >> $GITHUB_OUTPUT
 
     - name: Try to restore build image from GHCR
