@@ -88,8 +88,10 @@ jobs:
           export QUICKBUILD=1
         elif [[ -n "$BASE_FALLBACK_REPO" ]] && docker pull "ghcr.io/${BASE_FALLBACK_REPO}/base-win64:latest" 2>/dev/null; then
           docker tag "ghcr.io/${BASE_FALLBACK_REPO}/base-win64:latest" "ghcr.io/${REPO}/base-win64:latest"
+          docker push "ghcr.io/${REPO}/base-win64:latest"
           if docker pull "ghcr.io/${BASE_FALLBACK_REPO}/base:latest" 2>/dev/null; then
             docker tag "ghcr.io/${BASE_FALLBACK_REPO}/base:latest" "ghcr.io/${REPO}/base:latest"
+            docker push "ghcr.io/${REPO}/base:latest"
           fi
           export QUICKBUILD=1
         fi
