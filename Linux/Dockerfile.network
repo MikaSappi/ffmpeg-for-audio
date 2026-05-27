@@ -37,7 +37,7 @@ RUN wget -q https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.
 RUN wget -q https://github.com/openssl/openssl/releases/download/openssl-3.0.16/openssl-3.0.16.tar.gz \
     && tar xzf openssl-3.0.16.tar.gz \
     && cd openssl-3.0.16 \
-    && ./config no-shared no-tests no-docs \
+    && ./config no-shared no-tests \
          --prefix=$PREFIX \
          --openssldir=$PREFIX/ssl \
     && make -j"$(nproc)" \

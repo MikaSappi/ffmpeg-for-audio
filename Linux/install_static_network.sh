@@ -130,7 +130,7 @@ if [ ! -f "openssl-${OPENSSL_VERSION}.tar.gz" ]; then
 fi
 tar xzf "openssl-${OPENSSL_VERSION}.tar.gz"
 cd "openssl-${OPENSSL_VERSION}"
-./config no-shared no-tests no-docs \
+./config no-shared no-tests \
     --prefix="$PREFIX" \
     --openssldir="$PREFIX/ssl"
 make -j$CORES
