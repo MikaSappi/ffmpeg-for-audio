@@ -45,30 +45,37 @@ Shared-library build with full codec set. Disables display, audio I/O, and docs 
 
 ### `install_static_bare.sh` — Minimal static build
 
-Static binary with reduced codec set and the same disables as headless. Pre-compiled x86 binary available (~26 MB, Ubuntu 24.04).
+Static binary with reduced codec set and the same disables as headless. Pre-compiled x86 binary available (~26 MB, Ubuntu 24.04). No network protocols beyond plain `file:`/`tcp:` — for `https:` use `install_static_network.sh`.
 
 **Great for:** Embedding in applications, microservices, minimal Docker images.
 
+### `install_static_network.sh` — Minimal static build + HTTPS
+
+Same as `install_static_bare.sh` plus a statically linked OpenSSL, giving `https`/`tls` protocol support so ffmpeg/ffprobe can fetch remote URLs directly.
+
+**Great for:** Anywhere ffmpeg pulls inputs over `https://` (e.g. podcast/RSS asset URLs).
+
 ### Comparison (Linux)
 
-| | `install.sh` | `install_static.sh` | `install-headless.sh` | `install_static_bare.sh` |
-|---|:---:|:---:|:---:|:---:|
-| **Linking** | Shared | Static | Shared | Static |
-| **FFprobe** | Yes | Yes | Yes | Yes |
-| **FFplay** | Yes | Yes | No | No |
-| **Manpages** | Yes | Yes | No | No |
-| **Display / HW accel** | Yes | Yes | No | No |
-| **Audio I/O (ALSA, Pulse)** | Yes | Yes | No | No |
-| **GnuTLS** | Yes | No | Yes | No |
-| **libfdk-aac** | Yes | Yes | Yes | Yes |
-| **libmp3lame** | Yes | Yes | Yes | Yes |
-| **libopus** | Yes | Yes | Yes | Yes |
-| **libsoxr** | Yes | Yes | Yes | Yes |
-| **libvorbis** | Yes | No | Yes | No |
-| **libspeex** | Yes | No | Yes | No |
-| **libtwolame** | Yes | No | Yes | No |
-| **libopencore-amr** | Yes | No | Yes | No |
-| **libsrt** | If available | No | If available | No |
+| | `install.sh` | `install_static.sh` | `install-headless.sh` | `install_static_bare.sh` | `install_static_network.sh` |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Linking** | Shared | Static | Shared | Static | Static |
+| **FFprobe** | Yes | Yes | Yes | Yes | Yes |
+| **FFplay** | Yes | Yes | No | No | No |
+| **Manpages** | Yes | Yes | No | No | No |
+| **Display / HW accel** | Yes | Yes | No | No | No |
+| **Audio I/O (ALSA, Pulse)** | Yes | Yes | No | No | No |
+| **GnuTLS** | Yes | No | Yes | No | No |
+| **OpenSSL (https/tls)** | No | No | No | No | Yes |
+| **libfdk-aac** | Yes | Yes | Yes | Yes | Yes |
+| **libmp3lame** | Yes | Yes | Yes | Yes | Yes |
+| **libopus** | Yes | Yes | Yes | Yes | Yes |
+| **libsoxr** | Yes | Yes | Yes | Yes | Yes |
+| **libvorbis** | Yes | No | Yes | No | No |
+| **libspeex** | Yes | No | Yes | No | No |
+| **libtwolame** | Yes | No | Yes | No | No |
+| **libopencore-amr** | Yes | No | Yes | No | No |
+| **libsrt** | If available | No | If available | No | No |
 
 ---
 
