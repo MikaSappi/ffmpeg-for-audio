@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - '*'
+  schedule:
+    - cron: '0 3 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -12,14 +14,20 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, macos-15-intel]
+        major: [7, 8]
+        include:
+          - major: 7
+            suffix: ""
+          - major: 8
+            suffix: "-8"
     steps:
       - uses: actions/checkout@v4
-      - run: echo "7" | bash macOS/install_macos_static.sh
-      - run: cp /usr/local/ffmpeg-static/bin/ffmpeg ./ffmpeg-${{ matrix.os }}
+      - run: echo "${{ matrix.major }}" | bash macOS/install_macos_static.sh
+      - run: cp /usr/local/ffmpeg-static/bin/ffmpeg ./ffmpeg-${{ matrix.os }}${{ matrix.suffix }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg-${{ matrix.os }}
-          path: ffmpeg-${{ matrix.os }}
+          name: ffmpeg-${{ matrix.os }}${{ matrix.suffix }}
+          path: ffmpeg-${{ matrix.os }}${{ matrix.suffix }}
 
   build-linux:
     runs-on: ${{ matrix.os }}
@@ -27,21 +35,26 @@ jobs:
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm]
         variant: [bare, network]
+        major: [7, 8]
         include:
           - variant: bare
-            artifact_suffix: ""
+            variant_suffix: ""
             dockerfile: Linux/Dockerfile
           - variant: network
-            artifact_suffix: "-network"
+            variant_suffix: "-network"
             dockerfile: Linux/Dockerfile.network
+          - major: 7
+            major_suffix: ""
+          - major: 8
+            major_suffix: "-8"
     steps:
       - uses: actions/checkout@v4
-      - run: echo "7" | bash Linux/install_static_${{ matrix.variant }}.sh
-      - run: cp /usr/local/ffmpeg-static-${{ matrix.variant }}/bin/ffmpeg ./ffmpeg-${{ matrix.os }}${{ matrix.artifact_suffix }}
+      - run: echo "${{ matrix.major }}" | bash Linux/install_static_${{ matrix.variant }}.sh
+      - run: cp /usr/local/ffmpeg-static-${{ matrix.variant }}/bin/ffmpeg ./ffmpeg-${{ matrix.os }}${{ matrix.variant_suffix }}${{ matrix.major_suffix }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg-${{ matrix.os }}${{ matrix.artifact_suffix }}
-          path: ffmpeg-${{ matrix.os }}${{ matrix.artifact_suffix }}
+          name: ffmpeg-${{ matrix.os }}${{ matrix.variant_suffix }}${{ matrix.major_suffix }}
+          path: ffmpeg-${{ matrix.os }}${{ matrix.variant_suffix }}${{ matrix.major_suffix }}
 
   build-linux-image:
     runs-on: ubuntu-24.04
@@ -50,11 +63,16 @@ jobs:
     strategy:
       matrix:
         variant: [bare, network]
+        major: [7, 8]
         include:
           - variant: bare
             dockerfile: Linux/Dockerfile
           - variant: network
             dockerfile: Linux/Dockerfile.network
+          - major: 7
+            major_tag: "7.1"
+          - major: 8
+            major_tag: "8.0"
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -75,19 +93,37 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           platforms: linux/amd64
-          cache-from: type=gha,scope=${{ matrix.variant }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
-          build-args: FFMPEG_MAJOR=7
+          cache-from: type=gha,scope=${{ matrix.variant }}-${{ matrix.major }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}-${{ matrix.major }}
+          build-args: FFMPEG_MAJOR=${{ matrix.major }}
           tags: |
-            ghcr.io/${{ steps.repo.outputs.lc }}/linux-${{ matrix.variant }}-7.1:${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
-            ghcr.io/${{ steps.repo.outputs.lc }}/linux-${{ matrix.variant }}-7.1:latest
+            ghcr.io/${{ steps.repo.outputs.lc }}/linux-${{ matrix.variant }}-${{ matrix.major_tag }}:${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
+            ghcr.io/${{ steps.repo.outputs.lc }}/linux-${{ matrix.variant }}-${{ matrix.major_tag }}:latest
 
   build-windows:
     runs-on: ubuntu-latest
     permissions:
       packages: write
+    strategy:
+      matrix:
+        major: [7, 8]
+        include:
+          - major: 7
+            suffix: ""
+          - major: 8
+            suffix: "-8"
     steps:
     - uses: actions/checkout@v4
+
+    - name: Resolve latest stable minor addin
+      id: ver
+      run: |
+        ADDIN=$(ls Windows/addins | grep -E '^${{ matrix.major }}\.[0-9]+\.sh$' | sed 's/\.sh$//' | sort -V | tail -1)
+        if [ -z "$ADDIN" ]; then
+          echo "No Windows addin found for FFmpeg major ${{ matrix.major }}" >&2
+          exit 1
+        fi
+        echo "addin=$ADDIN" >> "$GITHUB_OUTPUT"
 
     - uses: docker/setup-buildx-action@v3
 
@@ -110,7 +146,7 @@ jobs:
             sha256sum Windows/generate.sh Windows/makeimage.sh Windows/download.sh
           } | sha256sum | cut -c1-16
         )
-        echo "image=ghcr.io/${REPO}/win64-nonfree-7.1:${KEY}" >> $GITHUB_OUTPUT
+        echo "image=ghcr.io/${REPO}/win64-nonfree-${{ steps.ver.outputs.addin }}:${KEY}" >> $GITHUB_OUTPUT
 
     - name: Try to restore build image from GHCR
       id: imgcache
@@ -118,7 +154,7 @@ jobs:
         REPO="${{ github.repository }}"
         REPO="${REPO,,}"
         if docker pull "${{ steps.imgkey.outputs.image }}" 2>/dev/null; then
-          docker tag "${{ steps.imgkey.outputs.image }}" "ghcr.io/${REPO}/win64-nonfree-7.1:latest"
+          docker tag "${{ steps.imgkey.outputs.image }}" "ghcr.io/${REPO}/win64-nonfree-${{ steps.ver.outputs.addin }}:latest"
           echo "hit=true" >> $GITHUB_OUTPUT
         else
           echo "hit=false" >> $GITHUB_OUTPUT
@@ -142,27 +178,27 @@ jobs:
           fi
           export QUICKBUILD=1
         fi
-        NOCLEAN=1 bash Windows/makeimage.sh win64 nonfree 7.1
+        NOCLEAN=1 bash Windows/makeimage.sh win64 nonfree "${{ steps.ver.outputs.addin }}"
 
     - name: Push build image to GHCR
       if: steps.imgcache.outputs.hit != 'true'
       run: |
         REPO="${{ github.repository }}"
         REPO="${REPO,,}"
-        docker tag "ghcr.io/${REPO}/win64-nonfree-7.1:latest" "${{ steps.imgkey.outputs.image }}"
+        docker tag "ghcr.io/${REPO}/win64-nonfree-${{ steps.ver.outputs.addin }}:latest" "${{ steps.imgkey.outputs.image }}"
         docker push "${{ steps.imgkey.outputs.image }}"
         docker push "ghcr.io/${REPO}/base:latest" 2>/dev/null || true
         docker push "ghcr.io/${REPO}/base-win64:latest" 2>/dev/null || true
 
-    - run: bash Windows/build.sh win64 nonfree 7.1
+    - run: bash Windows/build.sh win64 nonfree "${{ steps.ver.outputs.addin }}"
     - run: |
         mkdir extracted_zip
         unzip -j Windows/artifacts/*.zip -d extracted_zip
-        find extracted_zip -type f -name "ffmpeg.exe" -exec mv {} . \;
+        find extracted_zip -type f -name "ffmpeg.exe" -exec mv {} "./ffmpeg${{ matrix.suffix }}.exe" \;
     - uses: actions/upload-artifact@v4
       with:
-        name: ffmpeg-windows
-        path: ffmpeg.exe
+        name: ffmpeg-windows${{ matrix.suffix }}
+        path: ffmpeg${{ matrix.suffix }}.exe
 
   release:
     needs: [build-macos, build-linux, build-linux-image, build-windows]
