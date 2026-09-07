@@ -69,10 +69,6 @@ jobs:
             dockerfile: Linux/Dockerfile
           - variant: network
             dockerfile: Linux/Dockerfile.network
-          - major: 7
-            major_tag: "7.1"
-          - major: 8
-            major_tag: "8.0"
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -86,6 +82,22 @@ jobs:
         run: echo "lc=${REPO,,}" >> $GITHUB_OUTPUT
         env:
           REPO: ${{ github.repository }}
+      - name: Resolve latest stable minor
+        id: ver
+        run: |
+          LATEST=$(git ls-remote --tags https://git.ffmpeg.org/ffmpeg.git | \
+            grep -o 'refs/tags/n[0-9].*' | \
+            sed 's|refs/tags/||' | \
+            grep -v '\^{}' | \
+            grep -v -E "(dev|rc|alpha|beta)" | \
+            grep "^n${{ matrix.major }}\." | \
+            sort -V | tail -1)
+          if [ -z "$LATEST" ]; then
+            echo "No stable tags found for major ${{ matrix.major }}" >&2
+            exit 1
+          fi
+          MINOR=$(echo "$LATEST" | sed -E 's/^n([0-9]+\.[0-9]+)(\..*)?$/\1/')
+          echo "tag=$MINOR" >> "$GITHUB_OUTPUT"
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -97,8 +109,8 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.variant }}-${{ matrix.major }}
           build-args: FFMPEG_MAJOR=${{ matrix.major }}
           tags: |
-            ghcr.io/${{ steps.repo.outputs.lc }}/linux-${{ matrix.variant }}-${{ matrix.major_tag }}:${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
-            ghcr.io/${{ steps.repo.outputs.lc }}/linux-${{ matrix.variant }}-${{ matrix.major_tag }}:latest
+            ghcr.io/${{ steps.repo.outputs.lc }}/linux-${{ matrix.variant }}-${{ steps.ver.outputs.tag }}:${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
+            ghcr.io/${{ steps.repo.outputs.lc }}/linux-${{ matrix.variant }}-${{ steps.ver.outputs.tag }}:latest
 
   build-windows:
     runs-on: ubuntu-latest
