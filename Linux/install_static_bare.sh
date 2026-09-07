@@ -119,6 +119,10 @@ sudo make install
 
 echo "NASM installed successfully!"
 
+# Make the freshly-built nasm visible to FFmpeg's configure (apt only ships yasm,
+# which FFmpeg 8+ no longer accepts as a substitute).
+export PATH="/usr/local/ffmpeg-static-bare/bin:$PATH"
+
 # libfdk-aac
 echo "Building libfdk-aac (static)..."
 cd ~/ffmpeg_sources_static_bare && \

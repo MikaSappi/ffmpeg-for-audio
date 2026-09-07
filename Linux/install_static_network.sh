@@ -121,6 +121,10 @@ sudo make install
 
 echo "NASM installed successfully!"
 
+# Make the freshly-built nasm visible to FFmpeg's configure (apt only ships yasm,
+# which FFmpeg 8+ no longer accepts as a substitute).
+export PATH="$PREFIX/bin:$PATH"
+
 # OpenSSL (static) — provides https/tls protocols for ffmpeg
 echo "Building OpenSSL (static)..."
 cd ~/ffmpeg_sources_static_network

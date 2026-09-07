@@ -32,6 +32,9 @@ RUN wget -q https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.
     && make -j"$(nproc)" \
     && make install
 
+# apt only ships yasm, which FFmpeg 8+ no longer accepts as a substitute for nasm.
+ENV PATH="$PREFIX/bin:$PATH"
+
 # libfdk-aac (static)
 RUN git clone --depth 1 https://github.com/mstorsjo/fdk-aac \
     && cd fdk-aac \

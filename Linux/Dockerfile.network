@@ -33,6 +33,9 @@ RUN wget -q https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.
     && make -j"$(nproc)" \
     && make install
 
+# apt only ships yasm, which FFmpeg 8+ no longer accepts as a substitute for nasm.
+ENV PATH="$PREFIX/bin:$PATH"
+
 # OpenSSL 3.0 LTS (static) — enables https/tls/tcp protocols in ffmpeg
 RUN wget -q https://github.com/openssl/openssl/releases/download/openssl-3.0.16/openssl-3.0.16.tar.gz \
     && tar xzf openssl-3.0.16.tar.gz \
